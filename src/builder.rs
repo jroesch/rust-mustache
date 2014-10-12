@@ -4,11 +4,12 @@ use serialize::Encodable;
 
 use encoder;
 use encoder::{Encoder, Error};
-use super::{Data, Str, Bool, Vec, Map, Fun};
+use std::string;
+use super::{Data, StrData, Bool, Vect, Map, Fun};
 
 /// `MapBuilder` is a helper type that construct `Data` types.
 pub struct MapBuilder<'a> {
-    data: HashMap<String, Data<'a>>,
+    data: HashMap<string::String, Data<'a>>,
 }
 
 impl<'a> MapBuilder<'a> {
@@ -52,7 +53,7 @@ impl<'a> MapBuilder<'a> {
         K: StrAllocating, V: StrAllocating
     >(self, key: K, value: V) -> MapBuilder<'a> {
         let MapBuilder { mut data } = self;
-        data.insert(key.into_string(), Str(value.into_string()));
+        data.insert(key.into_string(), StrData(value.into_string()));
         MapBuilder { data: data }
     }
 
@@ -129,7 +130,7 @@ impl<'a> MapBuilder<'a> {
     ///     .build();
     /// ```
     #[inline]
-    pub fn insert_fn<K: StrAllocating>(self, key: K, f: |String|: 'a -> String) -> MapBuilder<'a> {
+    pub fn insert_fn<K: StrAllocating>(self, key: K, f: |string::String|: 'a -> string::String) -> MapBuilder<'a> {
         let MapBuilder { mut data } = self;
         data.insert(key.into_string(), Fun(RefCell::new(f)));
         MapBuilder { data: data }
@@ -186,7 +187,7 @@ impl<'a> VecBuilder<'a> {
     #[inline]
     pub fn push_str<T: StrAllocating>(self, value: T) -> VecBuilder<'a> {
         let VecBuilder { mut data } = self;
-        data.push(Str(value.into_string()));
+        data.push(StrData(value.into_string()));
         VecBuilder { data: data }
     }
 
@@ -264,7 +265,7 @@ impl<'a> VecBuilder<'a> {
     ///     .build();
     /// ```
     #[inline]
-    pub fn push_fn(self, f: |String|: 'a -> String) -> VecBuilder<'a> {
+    pub fn push_fn(self, f: |string::String|: 'a -> string::String) -> VecBuilder<'a> {
         let VecBuilder { mut data } = self;
         data.push(Fun(RefCell::new(f)));
         VecBuilder { data: data }
@@ -272,7 +273,7 @@ impl<'a> VecBuilder<'a> {
 
     #[inline]
     pub fn build(self) -> Data<'a> {
-        Vec(self.data)
+        Vect(self.data)
     }
 }
 
@@ -280,7 +281,7 @@ impl<'a> VecBuilder<'a> {
 mod tests {
     use std::collections::HashMap;
 
-    use super::super::{Str, Bool, Vec, Map, Fun};
+    use super::super::{Str, Bool, Vect, Map, Fun};
     use super::{MapBuilder, VecBuilder};
 
     #[test]
@@ -291,7 +292,7 @@ mod tests {
 
         assert_eq!(
             VecBuilder::new().build(),
-            Vec(Vec::new()));
+            Vect(Vec::new()));
     }
 
     #[test]

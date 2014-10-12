@@ -2,6 +2,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::io::MemWriter;
 use std::mem;
+use std::string;
 use std::str;
 use serialize::Encodable;
 
@@ -10,19 +11,19 @@ use parser::{Token, Text, ETag, UTag, Section, Partial};
 use encoder;
 use encoder::{Encoder, Error};
 
-use super::{Context, Data, Bool, Str, Vec, Map, Fun};
+use super::{Context, Data, Bool, StrData, Vect, Map, Fun};
 
 /// `Template` represents a compiled mustache file.
 #[deriving(Show, Clone)]
 pub struct Template {
     ctx: Context,
     tokens: Vec<Token>,
-    partials: HashMap<String, Vec<Token>>
+    partials: HashMap<string::String, Vec<Token>>
 }
 
 /// Construct a `Template`. This is not part of the impl of Template so it is
 /// not exported outside of mustache.
-pub fn new(ctx: Context, tokens: Vec<Token>, partials: HashMap<String,
+pub fn new(ctx: Context, tokens: Vec<Token>, partials: HashMap<string::String,
 Vec<Token>>) -> Template {
     Template {
         ctx: ctx,
@@ -56,7 +57,7 @@ impl Template {
 
 struct RenderContext<'a> {
     template: &'a Template,
-    indent: String,
+    indent: string::String,
 }
 
 impl<'a> RenderContext<'a> {
@@ -154,7 +155,7 @@ impl<'a> RenderContext<'a> {
         &mut self,
         wr: &mut W,
         stack: &mut Vec<&Data<'b>>,
-        path: &[String]
+        path: &[string::String]
     ) {
         let mut mem_wr = MemWriter::new();
 
@@ -179,7 +180,7 @@ impl<'a> RenderContext<'a> {
         &mut self,
         wr: &mut W,
         stack: &mut Vec<&Data<'b>>,
-        path: &[String]
+        path: &[string::String]
     ) {
         match self.find(path, stack) {
             None => { }
@@ -187,7 +188,7 @@ impl<'a> RenderContext<'a> {
                 wr.write_str(self.indent.as_slice()).unwrap();
 
                 match *value {
-                    Str(ref value) => {
+                    StrData(ref value) => {
                         wr.write_str(value.as_slice()).unwrap();
                     }
 
@@ -207,13 +208,13 @@ impl<'a> RenderContext<'a> {
         &mut self,
         wr: &mut W,
         stack: &mut Vec<&Data<'b>>,
-        path: &[String],
+        path: &[string::String],
         children: &[Token]
     ) {
         match self.find(path, stack) {
             None => { }
             Some(&Bool(false)) => { }
-            Some(&Vec(ref xs)) if xs.is_empty() => { }
+            Some(&Vect(ref xs)) if xs.is_empty() => { }
             Some(_) => { return; }
         }
 
@@ -224,7 +225,7 @@ impl<'a> RenderContext<'a> {
         &mut self,
         wr: &mut W,
         stack: &mut Vec<&Data<'b>>,
-        path: &[String],
+        path: &[string::String],
         children: &[Token],
         src: &str,
         otag: &str,
@@ -238,7 +239,7 @@ impl<'a> RenderContext<'a> {
                         self.render(wr, stack, children);
                     }
                     Bool(false) => { }
-                    Vec(ref vs) => {
+                    Vect(ref vs) => {
                         for v in vs.iter() {
                             stack.push(v);
                             self.render(wr, stack, children);
@@ -284,7 +285,7 @@ impl<'a> RenderContext<'a> {
         src: &str,
         otag: &str,
         ctag: &str,
-        f: &RefCell<|String| -> String>
+        f: &RefCell<|string::String| -> string::String>
     ) -> Vec<Token> {
         let f = &mut *f.borrow_mut();
         let src = (*f)(src.to_string());
@@ -300,7 +301,7 @@ impl<'a> RenderContext<'a> {
         tokens
     }
 
-    fn find<'b, 'c>(&self, path: &[String], stack: &mut Vec<&'c Data<'b>>) -> Option<&'c Data<'b>> {
+    fn find<'b, 'c>(&self, path: &[string::String], stack: &mut Vec<&'c Data<'b>>) -> Option<&'c Data<'b>> {
         // If we have an empty path, we just want the top value in our stack.
         if path.is_empty() {
             match stack.last() {
